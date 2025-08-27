@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 
 export type Task = {
@@ -12,6 +12,45 @@ const tasks = new Map<string, Task>();
 const app = express();
 app.use(express.json());
 
+class ApplicationError extends Error {
+  public statusCode: number;
+  public isOperational: boolean;
+
+  constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
+    super(message);
+    this.name = this.constructor.name;
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+    
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+};
+
+const errorHandler = (err: Error, _req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  console.error(err.stack);
+  
+  if (err instanceof ApplicationError) {
+    return res.status(err.statusCode).json({ 
+      error: err.message,
+      statusCode: err.statusCode 
+    });
+  }
+  
+  // Default error response
+  res.status(500).json({ 
+    error: 'Internal Server Error',
+    statusCode: 500 
+  });
+};
+
+
 app.get("/", (_req: Request, res: Response) => {
   return res.send("Placeholder");
 });
@@ -19,7 +58,7 @@ app.get("/", (_req: Request, res: Response) => {
 app.post("/tasks", (req: Request, res: Response) => {
   const { title, completed = false } = req.body ?? {};
   if (typeof title !== "string" || !title.trim()) {
-    return res.status(400).json({ error: "title is required" });
+    throw new ApplicationError("title is required", 400);
   }
   const id = uuidv4();
   const task: Task = { id, title: title.trim(), completed: Boolean(completed) };
@@ -34,7 +73,7 @@ app.get("/tasks", (_req: Request, res: Response) => {
 app.get("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
   const task = tasks.get(req.params.id);
   if (!task) {
-    return res.status(404).json({ error: "not found" });
+    throw new ApplicationError("Task not found", 404);
   }
 
   return res.json(task);
@@ -43,16 +82,16 @@ app.get("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
 app.put("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
   const existing = tasks.get(req.params.id);
   if (!existing) {
-    return res.status(404).json({ error: "not found" });
+    throw new ApplicationError("Task not found", 404);
   }
 
   const { title, completed } = req.body ?? {};
   if (title !== undefined && (typeof title !== "string" || !title.trim())) {
-    return res.status(400).json({ error: "title must be non-empty string" });
+    throw new ApplicationError("title must be non-empty string", 400);
   }
 
   if (completed !== undefined && typeof completed !== "boolean") {
-    return res.status(400).json({ error: "completed must be boolean" });
+    throw new ApplicationError("completed must be boolean", 400);
   }
 
   const updated: Task = {
@@ -68,9 +107,9 @@ app.put("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
 app.delete("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
   const deleted = tasks.delete(req.params.id);
   if (!deleted) { 
-    return res.status(404).json({ error: "not found" });
+    throw new ApplicationError("Task not found", 404);
   }
-  
+
   return res.status(204).send();
 });
 
@@ -78,5 +117,8 @@ app.delete("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
 export function __resetTasks() {
   tasks.clear();
 }
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 export default app;
