@@ -1,5 +1,8 @@
 import express, { NextFunction, Request, Response } from "express";
+import pinoHttp from "pino-http";
 import { v4 as uuidv4 } from "uuid";
+import { HttpError } from "@utils/errors";
+import { logger } from "@utils/logger";
 
 export type Task = {
   id: string;
@@ -11,45 +14,38 @@ const tasks = new Map<string, Task>();
 
 const app = express();
 app.use(express.json());
+app.use(pinoHttp({ logger }));
 
-class ApplicationError extends Error {
-  public statusCode: number;
-  public isOperational: boolean;
-
-  constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
-    super(message);
-    this.name = this.constructor.name;
-    this.statusCode = statusCode;
-    this.isOperational = isOperational;
-    
-    // Maintains proper stack trace for where our error was thrown (only available on V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-  }
-};
-
-const errorHandler = (err: Error, _req: Request, res: Response, next: NextFunction) => {
+const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (res.headersSent) {
     return next(err);
   }
 
-  console.error(err.stack);
-  
-  if (err instanceof ApplicationError) {
-    return res.status(err.statusCode).json({ 
+  logger.error(
+    err,
+    `received an error while processing %s %s`,
+    req.method,
+    req.url
+  );
+
+  if (err instanceof HttpError) {
+    return res.status(err.statusCode).json({
       error: err.message,
-      statusCode: err.statusCode 
+      statusCode: err.statusCode,
     });
   }
-  
+
   // Default error response
-  res.status(500).json({ 
-    error: 'Internal Server Error',
-    statusCode: 500 
+  res.status(500).json({
+    error: "Internal Server Error",
+    statusCode: 500,
   });
 };
-
 
 app.get("/", (_req: Request, res: Response) => {
   return res.send("Placeholder");
@@ -57,12 +53,15 @@ app.get("/", (_req: Request, res: Response) => {
 
 app.post("/tasks", (req: Request, res: Response) => {
   const { title, completed = false } = req.body ?? {};
+
   if (typeof title !== "string" || !title.trim()) {
-    throw new ApplicationError("title is required", 400);
+    throw new HttpError("title is required", 400);
   }
+
   const id = uuidv4();
   const task: Task = { id, title: title.trim(), completed: Boolean(completed) };
   tasks.set(id, task);
+
   return res.status(201).json(task);
 });
 
@@ -73,7 +72,7 @@ app.get("/tasks", (_req: Request, res: Response) => {
 app.get("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
   const task = tasks.get(req.params.id);
   if (!task) {
-    throw new ApplicationError("Task not found", 404);
+    throw new HttpError("Task not found", 404);
   }
 
   return res.json(task);
@@ -82,16 +81,16 @@ app.get("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
 app.put("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
   const existing = tasks.get(req.params.id);
   if (!existing) {
-    throw new ApplicationError("Task not found", 404);
+    throw new HttpError("Task not found", 404);
   }
 
   const { title, completed } = req.body ?? {};
   if (title !== undefined && (typeof title !== "string" || !title.trim())) {
-    throw new ApplicationError("title must be non-empty string", 400);
+    throw new HttpError("title must be non-empty string", 400);
   }
 
   if (completed !== undefined && typeof completed !== "boolean") {
-    throw new ApplicationError("completed must be boolean", 400);
+    throw new HttpError("completed must be boolean", 400);
   }
 
   const updated: Task = {
@@ -106,8 +105,8 @@ app.put("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
 
 app.delete("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
   const deleted = tasks.delete(req.params.id);
-  if (!deleted) { 
-    throw new ApplicationError("Task not found", 404);
+  if (!deleted) {
+    throw new HttpError("Task not found", 404);
   }
 
   return res.status(204).send();

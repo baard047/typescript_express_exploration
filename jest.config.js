@@ -6,6 +6,10 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   testMatch: ['**/*.test.ts'],
   collectCoverage: false,
+  moduleNameMapper: {
+    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 };
 
 
