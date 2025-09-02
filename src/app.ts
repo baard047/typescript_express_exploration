@@ -1,20 +1,31 @@
 import express, { NextFunction, Request, Response } from "express";
 import pinoHttp from "pino-http";
-import { v4 as uuidv4 } from "uuid";
 import { HttpError } from "@utils/errors";
 import { logger } from "@utils/logger";
-
-export type Task = {
-  id: string;
-  title: string;
-  completed: boolean;
-};
-
-const tasks = new Map<string, Task>();
+import userRoutes from "@routes/users";
+import taskRoutes from "@routes/tasks";
 
 const app = express();
 app.use(express.json());
-app.use(pinoHttp({ logger }));
+
+app.use(
+  pinoHttp({
+    logger,
+    serializers: {
+      req(req) {
+        return {
+          method: req.method,
+          url: req.url,
+        };
+      },
+      res(res) {
+        return {
+          statusCode: res.statusCode,
+        };
+      },
+    },
+  })
+);
 
 const errorHandler = (
   err: Error,
@@ -27,10 +38,7 @@ const errorHandler = (
   }
 
   logger.error(
-    err,
-    `received an error while processing %s %s`,
-    req.method,
-    req.url
+    `received an error ${err.message} while processing ${req.method} ${req.url}`
   );
 
   if (err instanceof HttpError) {
@@ -48,74 +56,19 @@ const errorHandler = (
 };
 
 app.get("/", (_req: Request, res: Response) => {
-  return res.send("Placeholder");
+  return res.json({
+    message: "Task Manager API",
+    version: "1.0.0",
+    endpoints: {
+      users: "/api/users",
+      tasks: "/api/tasks",
+    },
+  });
 });
 
-app.post("/tasks", (req: Request, res: Response) => {
-  const { title, completed = false } = req.body ?? {};
-
-  if (typeof title !== "string" || !title.trim()) {
-    throw new HttpError("title is required", 400);
-  }
-
-  const id = uuidv4();
-  const task: Task = { id, title: title.trim(), completed: Boolean(completed) };
-  tasks.set(id, task);
-
-  return res.status(201).json(task);
-});
-
-app.get("/tasks", (_req: Request, res: Response) => {
-  return res.json(Array.from(tasks.values()));
-});
-
-app.get("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
-  const task = tasks.get(req.params.id);
-  if (!task) {
-    throw new HttpError("Task not found", 404);
-  }
-
-  return res.json(task);
-});
-
-app.put("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
-  const existing = tasks.get(req.params.id);
-  if (!existing) {
-    throw new HttpError("Task not found", 404);
-  }
-
-  const { title, completed } = req.body ?? {};
-  if (title !== undefined && (typeof title !== "string" || !title.trim())) {
-    throw new HttpError("title must be non-empty string", 400);
-  }
-
-  if (completed !== undefined && typeof completed !== "boolean") {
-    throw new HttpError("completed must be boolean", 400);
-  }
-
-  const updated: Task = {
-    ...existing,
-    title: title !== undefined ? title.trim() : existing.title,
-    completed: completed !== undefined ? completed : existing.completed,
-  };
-
-  tasks.set(existing.id, updated);
-  return res.json(updated);
-});
-
-app.delete("/tasks/:id", (req: Request<{ id: string }>, res: Response) => {
-  const deleted = tasks.delete(req.params.id);
-  if (!deleted) {
-    throw new HttpError("Task not found", 404);
-  }
-
-  return res.status(204).send();
-});
-
-// Helper to reset store in tests
-export function __resetTasks() {
-  tasks.clear();
-}
+// API routes
+app.use("/api/users", userRoutes);
+app.use("/api/tasks", taskRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

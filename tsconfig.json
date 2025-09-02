@@ -17,7 +17,12 @@
     "baseUrl": "./src",
     "paths": {
       "@utils/*": ["utils/*"],
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@routes/*": ["routes/*"],
+      "@services/*": ["services/*"],
+      "@lib/*": ["lib/*"],
+      "@config/*": ["config/*"],
+      "@types": ["types"]
     },
     // For nodejs:
     // "lib": ["esnext"],
