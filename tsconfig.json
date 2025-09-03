@@ -22,6 +22,7 @@
       "@services/*": ["services/*"],
       "@lib/*": ["lib/*"],
       "@config/*": ["config/*"],
+      "@middleware/*": ["middleware/*"],
       "@types": ["types"]
     },
     // For nodejs:
