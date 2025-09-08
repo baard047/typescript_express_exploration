@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { taskService } from "@services/taskService";
-import { userService } from "@services/userService";
+import { taskService } from "./task.service";
+import { userService } from "@user/user.service";
 import { HttpError } from "@utils/errors";
 import { CreateTaskInput, UpdateTaskInput } from "@types";
 

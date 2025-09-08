@@ -9,8 +9,9 @@ module.exports = {
   moduleNameMapper: {
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@routes/(.*)$': '<rootDir>/src/routes/$1',
-    '^@services/(.*)$': '<rootDir>/src/services/$1',
+    '^@user/(.*)$': '<rootDir>/src/modules/user/$1',
+    '^@task/(.*)$': '<rootDir>/src/modules/task/$1',
+    '^@middleware/(.*)$': '<rootDir>/src/middleware/$1',
     '^@lib/(.*)$': '<rootDir>/src/lib/$1',
     '^@config/(.*)$': '<rootDir>/src/config/$1',
     '^@types$': '<rootDir>/src/types',

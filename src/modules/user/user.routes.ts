@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { userService } from "@services/userService";
+import { userService } from "./user.service";
 import { HttpError } from "@utils/errors";
 import { CreateUserInput, UpdateUserInput } from "@types";
 

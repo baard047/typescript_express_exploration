@@ -18,6 +18,8 @@
     "paths": {
       "@utils/*": ["utils/*"],
       "@/*": ["*"],
+      "@user/*": ["modules/user/*"],
+      "@task/*": ["modules/task/*"],
       "@routes/*": ["routes/*"],
       "@services/*": ["services/*"],
       "@lib/*": ["lib/*"],

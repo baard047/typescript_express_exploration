@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import pinoHttp from "pino-http";
-import userRoutes from "@routes/users";
-import taskRoutes from "@routes/tasks";
+import userRoutes from "@user/user.routes";
+import taskRoutes from "@task/task.routes";
 import { logger } from "@utils/logger";
 import { errorHandler } from "@middleware/errorHandler";
 
