@@ -3,6 +3,34 @@ import { logger } from "@utils/logger";
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 
+interface ErrorResponse {
+  statusCode: number;
+  error: string;
+  issues?: any;
+}
+
+const prepareErrorResponse = (err: Error): ErrorResponse => {
+  if (err instanceof HttpError) {
+    return {
+      statusCode: err.statusCode,
+      error: err.message,
+    };
+  }
+
+  if (err instanceof z.ZodError) {
+    return {
+      statusCode: 400,
+      error: "Validation error",
+      issues: z.treeifyError(err),
+    };
+  }
+
+  return {
+    statusCode: 500,
+    error: "Internal Server Error",
+  };
+};
+
 export const errorHandler = (
   err: Error,
   req: Request,
@@ -13,27 +41,19 @@ export const errorHandler = (
     return next(err);
   }
 
+  const errorResponse = prepareErrorResponse(err);
+
   logger.error(
-    `received an error ${err.message} while processing ${req.method} ${req.url}`
+    `received an error while processing ${req.method} "${req.url}": ${
+      errorResponse.error
+    }
+    ${
+      errorResponse.issues
+        ? `\nissues: ${JSON.stringify(errorResponse.issues, null, 2)}`
+        : ""
+    }`
   );
 
-  if (err instanceof HttpError) {
-    return res.status(err.statusCode).json({
-      error: err.message,
-      statusCode: err.statusCode,
-    });
-  }
-
-  if (err instanceof z.ZodError) {
-    return res.status(400).json({
-      error: "Validation error",
-      issues: z.treeifyError(err),
-    });
-  }
-
-  // Default error response
-  res.status(500).json({
-    error: "Internal Server Error",
-    statusCode: 500,
-  });
+  const { statusCode, ...responseBody } = errorResponse;
+  res.status(statusCode).json(responseBody);
 };
