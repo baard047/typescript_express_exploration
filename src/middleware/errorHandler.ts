@@ -1,6 +1,7 @@
 import { HttpError } from "@utils/errors";
 import { logger } from "@utils/logger";
 import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
 
 export const errorHandler = (
   err: Error,
@@ -20,6 +21,13 @@ export const errorHandler = (
     return res.status(err.statusCode).json({
       error: err.message,
       statusCode: err.statusCode,
+    });
+  }
+
+  if (err instanceof z.ZodError) {
+    return res.status(400).json({
+      error: "Validation error",
+      issues: z.treeifyError(err),
     });
   }
 
