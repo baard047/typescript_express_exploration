@@ -19,7 +19,8 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tasks     Task[]
+  //TODO remove this from here
+  tasks     Task[] 
 
   @@map("users")
 }
@@ -31,6 +32,7 @@ model Task {
   completed   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  //TODO create index here for optimized queries by userId
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

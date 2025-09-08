@@ -20,12 +20,9 @@
       "@/*": ["*"],
       "@user/*": ["modules/user/*"],
       "@task/*": ["modules/task/*"],
-      "@routes/*": ["routes/*"],
-      "@services/*": ["services/*"],
       "@lib/*": ["lib/*"],
       "@config/*": ["config/*"],
       "@middleware/*": ["middleware/*"],
-      "@types": ["types"]
     },
     // For nodejs:
     // "lib": ["esnext"],

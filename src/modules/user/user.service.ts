@@ -1,10 +1,13 @@
 import { prisma } from "@lib/prisma";
-import { CreateUserInput, UpdateUserInput, User, UserWithTasks } from "@types";
+import { CreateUserInput, UpdateUserInput, User } from "./user.types";
 
 export class UserService {
-  async createUser(data: CreateUserInput): Promise<User> {
+  async createUser(userInput: CreateUserInput): Promise<User> {
     return prisma.user.create({
-      data,
+      data: {
+        email: userInput.email,
+        name: userInput.name ?? null,
+      },
     });
   }
 
@@ -20,15 +23,6 @@ export class UserService {
     });
   }
 
-  async getUserWithTasks(id: string): Promise<UserWithTasks | null> {
-    return prisma.user.findUnique({
-      where: { id },
-      include: {
-        tasks: true,
-      },
-    });
-  }
-
   async getAllUsers(): Promise<User[]> {
     return prisma.user.findMany();
   }
@@ -36,7 +30,10 @@ export class UserService {
   async updateUser(id: string, data: UpdateUserInput): Promise<User> {
     return prisma.user.update({
       where: { id },
-      data,
+      data: {
+        ...(data.email !== undefined ? { email: data.email } : {}),
+        ...(data.name !== undefined ? { name: data.name ?? null } : {}),
+      },
     });
   }
 
@@ -48,4 +45,3 @@ export class UserService {
 }
 
 export const userService = new UserService();
-

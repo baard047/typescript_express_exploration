@@ -154,44 +154,6 @@ describe("User Routes", () => {
     });
   });
 
-  describe("GET /api/users/:id/tasks", () => {
-    it("should return user with tasks", async () => {
-      // Create user
-      const userResponse = await request(app)
-        .post("/api/users")
-        .send({ email: "test@example.com", name: "Test User" })
-        .expect(201);
-
-      const userId = userResponse.body.id;
-
-      // Create tasks for user
-      const tasks = [
-        { title: "Task 1", userId },
-        { title: "Task 2", userId },
-      ];
-
-      for (const task of tasks) {
-        await request(app).post("/api/tasks").send(task).expect(201);
-      }
-
-      const response = await request(app)
-        .get(`/api/users/${userId}/tasks`)
-        .expect(200);
-
-      expect(response.body.tasks).toHaveLength(2);
-      expect(response.body.tasks[0].title).toBe("Task 1");
-      expect(response.body.tasks[1].title).toBe("Task 2");
-    });
-
-    it("should return 404 if user not found", async () => {
-      const response = await request(app)
-        .get("/api/users/nonexistent-id/tasks")
-        .expect(404);
-
-      expect(response.body.error).toBe("User not found");
-    });
-  });
-
   describe("PUT /api/users/:id", () => {
     it("should update user", async () => {
       const userData = {

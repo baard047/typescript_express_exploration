@@ -1,10 +1,13 @@
 import { prisma } from "@lib/prisma";
-import { CreateTaskInput, Task, UpdateTaskInput } from "@types";
+import { CreateTaskInput, Task, UpdateTaskInput } from "./task.types";
 
 export class TaskService {
-  async createTask(data: CreateTaskInput): Promise<Task> {
+  async createTask(userInput: CreateTaskInput): Promise<Task> {
     return prisma.task.create({
-      data,
+      data: {
+        ...userInput,
+        description: userInput.description ?? null,
+      },
     });
   }
 
@@ -36,7 +39,9 @@ export class TaskService {
   async updateTask(id: string, data: UpdateTaskInput): Promise<Task> {
     return prisma.task.update({
       where: { id },
-      data,
+      data: Object.fromEntries(
+        Object.entries(data).filter(([_, value]) => value !== undefined)
+      ),
     });
   }
 
@@ -58,4 +63,3 @@ export class TaskService {
 }
 
 export const taskService = new TaskService();
-
